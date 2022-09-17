@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:14.5
+    volumes:
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
+    command: -c 'log_statement=all' -c 'log_destination=stderr'
+    environment:
+      POSTGRES_USER: sa
+      POSTGRES_DB: blog
+      POSTGRES_PASSWORD: sa
+    ports:
+      - 5432:5432

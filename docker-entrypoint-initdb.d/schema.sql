@@ -1,0 +1,31 @@
+CREATE TABLE IF NOT EXISTS access_logs(
+    id BIGSERIAL,
+    message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    PRIMARY KEY(id)
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id VARCHAR(128)  NOT NULL,
+    name VARCHAR(128) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    PRIMARY KEY(id)
+);
+
+CREATE TABLE IF NOT EXISTS articles (
+    id VARCHAR(128)  NOT NULL,
+    head VARCHAR(128) NOT NULL,
+    description TEXT NOT NULL,
+    author_id VARCHAR NOT NULL,
+    published_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    PRIMARY KEY(id),
+    CONSTRAINT fk_articles_author_id
+    FOREIGN KEY(author_id)
+    REFERENCES users(id)
+                         ON DELETE NO ACTION
+);
