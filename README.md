@@ -15,6 +15,14 @@ psql --username=sa --dbname=postgres --host=127.0.0.1
 # パスワードも"sa"
 ```
 
+プログラム実行方法
+
+IntelliJのRunを実行してください。もしくは
+
+```shell
+./gradlew bootRun
+```
+
 ## SpringBoot Dataとは
 
 SpringBoot Dataモジュールは、データ永続化層へのアクセスを提供する。以下の特徴があるっぽい。
@@ -31,6 +39,6 @@ Repositoryというインターフェースを介してデータ永続化層を�
 所感
 
 - 外部キーによる高機能な連結機能はない。
-- シンプル is the best。
+- JDBCはシンプル is the best。読みやすさ > 書きやすさ。
 - 普通にSQLを書く必要あり。
 - ORマッパーではない。
