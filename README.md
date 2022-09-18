@@ -22,9 +22,15 @@ SpringBoot Dataモジュールは、データ永続化層へのアクセスを�
 データベースとのやりとりを行う部分の詳細実装を隠蔽できる。
 Repositoryというインターフェースを介してデータ永続化層を操作することにより実現する。
 
-## とりあえず使ってみる。
+## とりあえず使ってみた
 
-SpringBoot Data JDBCを使ってみよう。SpringBoot Data JDBCは、SpringBoot DataのJDBC実装。
+### Spring Boot Data JDBC
 
-今回、ブログサイトを作るという想定でJDBCを用いたプログラムを書いてみる。
+- com.example.sbdatasandbox.SbDataSandboxApplication.kt
 
+所感
+
+- 外部キーによる高機能な連結機能はない。
+- シンプル is the best。
+- 普通にSQLを書く必要あり。
+- ORマッパーではない。

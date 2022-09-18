@@ -8,11 +8,15 @@ import org.springframework.data.annotation.PersistenceCreator
 import org.springframework.data.annotation.Transient
 import org.springframework.data.domain.Persistable
 import org.springframework.data.jdbc.repository.config.EnableJdbcRepositories
+import org.springframework.data.jdbc.repository.query.Query
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import org.springframework.data.repository.CrudRepository
+import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 import java.time.OffsetDateTime
 
 // JDBCのObject Mapping Fundamentals
@@ -85,6 +89,8 @@ data class Article(
     val authorId: String,
 
     @Transient
+    val author: User? = null,
+    @Transient
     val forceInsertOnSave: Boolean? = false
 ) : Persistable<String> {
     @PersistenceCreator
@@ -98,6 +104,7 @@ data class Article(
         description = description,
         authorId = authorId,
         head = head,
+        author = null,
         forceInsertOnSave = false,
     )
 
@@ -116,15 +123,29 @@ data class Article(
 // 実際にデータベースとのやりとりをする。
 // Repositoryインターフェースができるのは読み込みだけ。
 // CrudRepositoryインターフェースは書き込みもできる。
-interface TableUser : CrudRepository<User, String>
+interface TableUser : CrudRepository<User, String> {
+    // 読み取り用の処理
+    // https://docs.spring.io/spring-data/jdbc/docs/current/reference/html/#jdbc.query-methods
+    // 単純なクエリについては、メソッドを命名規則に従って定義するだけで良い。
+    // 以下のメソッドは
+    // SELECT * FROM users WHERE name = ?
+    // というクエリを実行するメソッド
+    fun findByName(name: String): java.util.Optional<User>
+}
+
 interface TableAccessLog : CrudRepository<AccessLog, Long>
-interface TableArticle : CrudRepository<Article, String>
+interface TableArticle : CrudRepository<Article, String> {
+    // 命名規則に合わない任意のクエリを実行する場合、@Queryアノテーションを使う
+    @Query("SELECT * FROM articles WHERE deleted_at IS NULL")
+    fun findActiveArticles(): Iterable<Article>
+}
 
 @Service
 class RepositoryBlog(
     val tableUser: TableUser,
     val tableAccessLog: TableAccessLog,
     val tableArticle: TableArticle,
+    val jdbcTemplate: JdbcTemplate,
 ) {
     fun basicExamples() {
         // データ挿入
@@ -246,6 +267,59 @@ class RepositoryBlog(
         )
     }
 
+    fun queryExample1() {
+        val users = Array(3) {
+            User(
+                userId = "u${it}",
+                name = "n${it}",
+                forceInsertOnSave = true,
+            )
+        }
+        val articles = Array(5) {
+            Article(
+                articleId = "a${it}",
+                authorId = "u${it % users.size}",
+                head = "h${it}",
+                description = "d${it}",
+                forceInsertOnSave = true,
+            )
+        }
+        for (user in users) {
+            println(user)
+        }
+        for (article in articles) {
+            println(article)
+        }
+        // 複数のエンティティを挿入する場合、saveAllも使える
+        tableUser.saveAll(listOf(*users))
+        tableArticle.saveAll(listOf(*articles))
+
+        // JDBC Templateも使えます
+        println(tableUser.findByName("n1"))
+        println(tableArticle.findActiveArticles())
+        class RowMapperArticle : RowMapper<Article> {
+            override fun mapRow(rs: ResultSet, rowNum: Int): Article {
+                return Article(
+                    articleId = rs.getString("id"),
+                    head = rs.getString("head"),
+                    description = rs.getString("description"),
+                    authorId = rs.getString("author_id"),
+                    author = User(
+                        userId = rs.getString("author_id"),
+                        name = rs.getString("author_name")
+                    ),
+                )
+            }
+        }
+
+        val results =
+            jdbcTemplate.query(
+                "SELECT articles.id as id, articles.head as head, articles.description as description, users.id as author_id, users.name as author_name FROM articles INNER JOIN users ON articles.author_id = users.id",
+                RowMapperArticle(),
+            )
+        println(results)
+    }
+
     fun clean() {
         tableArticle.deleteAll()
         tableUser.deleteAll()
@@ -267,7 +341,8 @@ class SbDataSandboxApplication(
             // トランザクションまわり
             // repositoryBlog.transactionExample1()
             // repositoryBlog.transactionExample2()
-            repositoryBlog.transactionExample3()
+            // repositoryBlog.transactionExample3()
+            repositoryBlog.queryExample1()
         } finally {
             repositoryBlog.clean()
         }
